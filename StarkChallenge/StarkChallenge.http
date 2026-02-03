@@ -1,0 +1,4 @@
+@StarkChallenge_HostAddress = http://localhost:5016
+
+GET {{StarkChallenge_HostAddress}}/ConfigTask
+Accept: application/json
