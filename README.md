@@ -1,44 +1,44 @@
 # StarkChallenge
 
-Descrição
--------
-Aplicação ASP.NET Core para demonstração de processamento de faturas e execução de transferências em lote com integração ao StarkBank (SDK). O projeto contém serviços, repositório de persistência de IDs de fatura, um pipeline de processamento e um agendador configurável.
+Description
+-----------
+ASP.NET Core application demonstrating invoice processing and batch transfer execution integrated with the StarkBank SDK. The project includes services, an invoice ID persistence repository, a processing pipeline, and a configurable scheduler.
 
-Principais funcionalidades
--------------------------
-- Pipeline de processamento de faturas (`Process/InvoiceProcess.cs`).
-- Serviço de clientes e geração de dados (`Services/ClientsService.cs`).
-- Serviço de transferência com integração ao StarkBank (`Services/TransferService.cs`).
-- Repositório para controle de IDs processados (`Repositorys/InvoiceIDRepository.cs`).
-- Agendador configurável via `ProgramConfig` (intervalos e tamanho do lote).
+Key features
+------------
+- Invoice processing pipeline (`Process/InvoiceProcess.cs`).
+- Client service and test-data generation (`Services/ClientsService.cs`).
+- Transfer service integrated with StarkBank (`Services/TransferService.cs`).
+- Repository for tracking processed invoice IDs (`Repositorys/InvoiceIDRepository.cs`).
+- Configurable scheduler using `ProgramConfig` (controls batch size and run interval).
 
-Stack tecnológica
------------------
-- Plataforma: .NET 8 (ASP.NET Core)
-- Banco (opcional): MongoDB (`MongoDB.Driver`)
-- Bibliotecas: `StarkBank` SDK, `Swashbuckle.AspNetCore` (Swagger), `Bogus` (dados fictícios)
-- Testes: xUnit (projeto `StarkChallenge.Tests`)
+Tech stack
+----------
+- Platform: .NET 8 (ASP.NET Core)
+- Database (optional): MongoDB (`MongoDB.Driver`)
+- Libraries: `StarkBank` SDK, `Swashbuckle.AspNetCore` (Swagger), `Bogus` (fake data)
+- Testing: xUnit (project `StarkChallenge.Tests`)
 
-Pré-requisitos
---------------
-- .NET 8 SDK
-- (Opcional) Instância MongoDB se for utilizar persistência real
-- Credenciais StarkBank (ProjectId e PrivateKey) para executar transferências reais
-
-Configuração
+Prerequisites
 -------------
-- Arquivos principais: `StarkChallenge/appsettings.json` e `StarkChallenge/appsettings.Development.json`.
-- Exemplo de entrada de faturas: `StarkChallenge/invoiceJson.json`.
-- Se estiver usando `appsettings.Development.json`, não comite credenciais sensíveis no repositório — use variáveis de ambiente ou um secret store.
+- .NET 8 SDK
+- (Optional) MongoDB instance if using persistent storage
+- StarkBank credentials (`ProjectId` and `PrivateKey`) to perform real transfers
 
-Seções relevantes em `appsettings.json`:
-- `StarkBank`: `Enviroment`, `ProjectId`, `PrivateKey`, `TransferTarget` (dados da conta destino).
-- `ProgramConfig`: `MinClients`, `MaxCLients`, `IntervalHours` (configuração do agendador).
-- `ConnectionStrings:MongoDb`: string de conexão do MongoDB.
+Configuration
+-------------
+- Main config files: `StarkChallenge/appsettings.json` and `StarkChallenge/appsettings.Development.json`.
+- Example invoice input: `StarkChallenge/invoiceJson.json`.
+- If using `appsettings.Development.json`, do not commit sensitive credentials to the repository — use environment variables or a secret store.
 
-Como executar (localmente)
--------------------------
-1. Restaurar pacotes:
+Relevant `appsettings.json` sections:
+- `StarkBank`: `Enviroment`, `ProjectId`, `PrivateKey`, `TransferTarget` (destination account details).
+- `ProgramConfig`: `MinClients`, `MaxCLients`, `IntervalHours` (scheduler settings).
+- `ConnectionStrings:MongoDb`: MongoDB connection string.
+
+How to run (locally)
+---------------------
+1. Restore packages:
 
 ```bash
 dotnet restore
@@ -50,65 +50,72 @@ dotnet restore
 dotnet build
 ```
 
-3. Executar:
+3. Run:
 
 ```bash
 dotnet run --project StarkChallenge
 ```
 
-4. Testes:
+4. Tests:
 
 ```bash
 dotnet test
 ```
 
-API e documentação
--------------------
-- O projeto registra o Swagger (Swashbuckle). Após iniciar a aplicação, abra `/swagger` para explorar os endpoints.
-- Exemplo de requisição está em `StarkChallenge/StarkChallenge.http`.
+API and documentation
+---------------------
+- The project registers Swagger (Swashbuckle). After starting the application, open `/swagger` to explore the API endpoints.
+- A sample request file is located at `StarkChallenge/StarkChallenge.http`.
 
-Segurança e boas práticas
-------------------------
-- Nunca comite chaves privadas ou segredos em `appsettings.*.json`. Utilize variáveis de ambiente ou secret stores.
-- Valide ambientes e credenciais StarkBank antes de executar transferências reais; recomenda-se executar primeiro em `sandbox`.
-- Garanta idempotência nas operações de transferência para evitar duplicidade.
+Security and best practices
+--------------------------
+- Never commit private keys or secrets in `appsettings.*.json`. Use environment variables or a secret manager.
+- Validate StarkBank environment and credentials before performing real transfers; prefer `sandbox` for testing.
+- Ensure idempotency in transfer operations to avoid duplicates.
 
-Estrutura resumida do projeto
-----------------------------
-- `Controllers/` - endpoints HTTP (ex.: `WebhookController`).
-- `Services/` - lógica de negócio.
-- `Process/` - processamento de faturas.
-- `Repositorys/` - persistência de dados.
-- `Utils/` - utilitários e stores.
+Project structure (summary)
+---------------------------
+- `Controllers/` - HTTP endpoints (e.g. `WebhookController`).
+- `Services/` - business logic.
+- `Process/` - invoice processing logic.
+- `Repositorys/` - data persistence.
+- `Utils/` - utilities and stores.
 
-Contribuição
+Contribution
 ------------
-- Abra uma issue antes de implementar features maiores.
-- Crie PRs por branch com descrição clara e testes quando aplicável.
- 
-Scheduler (detalhado)
---------------------
-- Configuração: gerenciada por `ConfigScheduler` (`Config/ConfigScheduler.cs`) com as propriedades `MinClients`, `MaxClients` e `IntervalHours`.
-- Executado como um `BackgroundService` em `Schedulers/SchedulerProcess.cs`. O serviço roda em loop enquanto a aplicação estiver ativa.
-- Fluxo por ciclo:
-	- Cria um escopo de DI (`IServiceScopeFactory`) para resolver serviços com o lifetime correto.
-	- Usa `IClientsService.GenerateRandomClients(MinClients, MaxClients)` para gerar um lote de clientes.
-	- Chama `IInvoiceProcess.ProcessInvoices(clients)`, que delega a `IInvoiceService.CreateInvoices` para criar invoices via SDK do StarkBank.
-	- Aguarda `IntervalHours` horas antes do próximo ciclo (`Task.Delay(TimeSpan.FromHours(...))`).
-- Impacto prático: automatiza a criação periódica de invoices em lote; útil para simular carga, gerar faturamentos periódicos ou acionar processamento contínuo.
+- Open an issue before implementing major features.
+- Create pull requests per feature branch with clear descriptions and tests where applicable.
 
-Webhook (rota e comportamento)
------------------------------
-- Rota exposta: `POST /Webhook/starkbank/invoiceReceptor` (controller `WebhookController`, atributo `[Route("[controller]/starkbank")]`).
-- Entrada: um `ResponseInvoiceDTO` no corpo da requisição (payload do webhook do StarkBank).
-- Lógica:
-	- O controller chama `await _transferService.ValidateTransferProcess(payload)`.
-	- Em `TransferService.ValidateTransferProcess`:
-		- Verifica se `Event.Log.Type == "credited"` (invoice creditada).
-		- Consulta `IInvoiceIDRepository.AlreadyExists(invoiceId)` para garantir idempotência e evitar processar o mesmo evento duas vezes.
-		- Se for um crédito novo, cria um `Transfer` usando os dados de `TransferTarget` em `appsettings` e chama `Transfer.Create(...)` (SDK StarkBank).
-		- Registra o ID da invoice com `IInvoiceIDRepository.RecordID(...)` após criar a transferência.
-- Efeito prático: quando o StarkBank notifica que uma invoice foi creditada, o webhook valida o evento e inicia a transferência automaticamente, com proteção contra duplicidade.
+Scheduler (detailed)
+--------------------
+- Configuration: managed by `ConfigScheduler` (`Config/ConfigScheduler.cs`) with `MinClients`, `MaxClients`, and `IntervalHours` properties.
+- Runs as a `BackgroundService` in `Schedulers/SchedulerProcess.cs`. The service loops while the application is running.
+- Per-cycle flow:
+	- Creates a DI scope (`IServiceScopeFactory`) to resolve services with correct lifetimes.
+	- Uses `IClientsService.GenerateRandomClients(MinClients, MaxClients)` to generate a batch of clients.
+	- Calls `IInvoiceProcess.ProcessInvoices(clients)`, which delegates to `IInvoiceService.CreateInvoices` to create invoices via the StarkBank SDK.
+	- Waits `IntervalHours` hours before the next cycle (`Task.Delay(TimeSpan.FromHours(...))`).
+- Practical impact: automates periodic batch invoice creation; useful for load simulation, recurring billing, or continuous processing.
+
+Webhook (route and behavior)
+---------------------------
+- Exposed route: `POST /Webhook/starkbank/invoiceReceptor` (controller `WebhookController`, attribute `[Route("[controller]/starkbank")]`).
+- Input: a `ResponseInvoiceDTO` in the request body (the webhook payload from StarkBank).
+- Logic:
+	- The controller calls `await _transferService.ValidateTransferProcess(payload)`.
+	- In `TransferService.ValidateTransferProcess`:
+		- Checks whether `Event.Log.Type == "credited"` (invoice credited).
+		- Checks `IInvoiceIDRepository.AlreadyExists(invoiceId)` for idempotency to avoid processing the same event twice.
+		- If a new credit, creates a `Transfer` using `TransferTarget` from `appsettings` and calls `Transfer.Create(...)` (StarkBank SDK).
+		- Records the invoice ID with `IInvoiceIDRepository.RecordID(...)` after creating the transfer.
+- Practical effect: when StarkBank notifies that an invoice was credited, the webhook validates the event and triggers a transfer automatically, with duplicate protection.
+
+Recommendations for improvements
+--------------------------------
+- Validate webhook signatures: confirm event origin by verifying headers/signature (there is an `EllipticCurve` reference in the controller, but no verification logic). Implementing signature verification prevents processing forged payloads.
+- Logging and metrics: add structured logs and success/failure counters to monitor the scheduler and transfers.
+- Retries and resilience: wrap `Invoice.Create` and `Transfer.Create` calls with retry/circuit-breaker policies to handle transient external API failures.
+- Persistence and concurrency: ensure `IInvoiceIDRepository` is durable and race-condition safe (e.g. unique indexes in the DB to prevent duplicates).
 
 
 
